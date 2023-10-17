@@ -424,8 +424,8 @@ int main() {
     i_filtred = rrc(i_up,k,tam_up);
     q_filtred = rrc(q_up,k,tam_up);
     
-    imprime_vetor(i_filtred,tam_up);
-    printf("saida: \n");
+    //imprime_vetor(i_filtred,tam_up);
+    //printf("saida: \n");
     // Tx ----------------------------------------------------------------------
     float *u,fc = 320000,fss =2560000;
 
@@ -435,7 +435,7 @@ int main() {
 
     rx_heterodinacao(u,i_filtred,q_filtred,tam_up,fc,fss);
 
-    imprime_vetor(i_filtred,tam_up);
+    //imprime_vetor(i_filtred,tam_up);
 
     // Filter demodulação ------------------------------------------------------  
     float *i_demo, *q_demo;
