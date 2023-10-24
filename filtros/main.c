@@ -278,7 +278,6 @@ float *rrc(float *vet, int k, int tam_vet){
     return result;
 }
 
-
 float *tx_heterodinacao(float *u, float *i, float *q, int length, float fc, float fs){
     float ui[length], uq[length];
     u = aloca_memoria_float(length);
