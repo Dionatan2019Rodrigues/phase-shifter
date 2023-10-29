@@ -1,6 +1,6 @@
 /* Desenvolvido por Dionatan Rodrigues - derodrigues@inf.ufsm.br*/
 #include <stdio.h>
-#include <stdlib.h> // necessário para usar função malloc()
+#include <stdlib.h> // necessário para usar função malloc() e rand()
 #include <string.h> // necessário para usar função strtok()
 #include <math.h>   // necessário para função gera_h_rrc()
 #include <stdbool.h> // necessário para parâmetro same da função convolucao()
@@ -50,7 +50,7 @@ int conta_elemento(FILE *arq){
 
 void imprime_vetor(float *vet, int tam){
     for(int it=0;it<tam;it++){
-        printf("%.4f\t",vet[it]);
+        printf("%.2f\t",vet[it]);
     }
     printf("\n");
 }
@@ -289,12 +289,106 @@ float *tx_heterodinacao(float *u, float *i, float *q, int length, float fc, floa
     return u;
 }
 
-void rx_heterodinacao(float *u, float *i, float *q, int length, float fc, float fs){
+void firpm(float *h, int filterLength, float *f, float *a) {
+    //float sum;
+
+    for(int i=0;i<filterLength;i++){
+        h[i] = 0;
+        for (int j=0;j<sizeof(f)/sizeof(f[0]);j++) {
+            if (i == 0) 
+                h[i] += 2.0 * f[j];
+            else
+                h[i] += 2.0 * f[j] * cos(2.0 * pi * i * f[j]); 
+        }
+        h[i] /= filterLength;
+    }
+    // Aplicar amplitudes desejadas
+    for(int i = 0; i < filterLength; i++){
+        h[i] *= a[i];
+    }
+}
+
+float *att_z(float *z, int length, float value){
+    for(int i=0;i<length-1;i++){
+        z[i] = z[i+1];
+    }
+    z[length-1] = value;
+
+    return z;
+}
+
+void fliplr(float *vet, int length){
+    int inicio = 0;
+    int fim = length - 1;
+    
+    while(inicio < fim){
+        // Troque os elementos nas posições inicio e fim
+        float aux = vet[inicio];
+        vet[inicio] = vet[fim];
+        vet[fim] = aux;
+        
+        inicio++;
+        fim--;
+    }
+}
+
+float matrix_multiplica(float *v, float *vet, int length){
+    float result = 0;
+    for (int i=0;i<length;i++){
+        result += v[i] * vet[i];
+    }
+    return result;
+}
+
+void costas_loop(float *i, float *q, int length){
+    float *r = i, f[]={0, 0.2, 0.3, 1}, a[]={1, 1, 0, 0};
+    float h[length]; firpm(h,length,f,a); 
+    int fl = 100, que = fl+1;
+    float mu = 0.00001, f0 = 320000;
+
+    float *th = zera_buffer(length);    th[0] = rand();
+    float *z1 = zera_buffer(que);   float *z2 = zera_buffer(que);
+    float *z3 = zera_buffer(que);   float *z4 = zera_buffer(que);
+
+    for(int it=0;it<length;it++){
+        float s = 2*r[it];
+        z1 = att_z(z1,que,s*cos(2*pi*f0*it+th[it]));
+        z2 = att_z(z2,que,s*cos(2*pi*f0*it+pi/4+th[it]));
+        z3 = att_z(z3,que,s*cos(2*pi*f0*it+pi/2+th[it]));
+        z4 = att_z(z4,que,s*cos(2*pi*f0*it+(3*pi/4)+th[it]));
+        fliplr(h,length);
+        float lpf1 = matrix_multiplica(h,z1,length);
+        float lpf2 = matrix_multiplica(h,z2,length);
+        float lpf3 = matrix_multiplica(h,z3,length);
+        float lpf4 = matrix_multiplica(h,z4,length);
+
+        th[it+1] = th[it]+mu*lpf1*lpf2*lpf3*lpf4;
+    }
+
+    for(int it=0;it<length;it++){
+        i[it] = r[it]*sin(2*pi*it+th[it]);
+        q[it] = q[it]*sin(2*pi*it+th[it]);
+    }
+
+
+}
+
+void rx_heterodinacao(float *u, float *i, float *q, int length, float fc, float fs, int k){
     float ui[length], uq[length];
+    //int delta_f = 100;
+
     for(int it=0;it<length;it++){
         i[it] = u[it] *cos(2*pi*fc*it/fs);
-        q[it] = u[it] -sin(2*pi*fc*it/fs);
+        q[it] = u[it] *(-sin(2*pi*fc*it/fs));
     }
+
+    //passagem pelo filtro
+    i = rrc(i,k,length);
+    q = rrc(q,k,length);
+
+    //costas loop   
+    costas_loop(i,q,length);
+
 }
 
 // funções de demodulação --------------------------------------------
@@ -432,7 +526,7 @@ int main() {
 
     // Rx ----------------------------------------------------------------------  
 
-    rx_heterodinacao(u,i_filtred,q_filtred,tam_up,fc,fss);
+    rx_heterodinacao(u,i_filtred,q_filtred,tam_up,fc,fss,k);
 
     //imprime_vetor(i_filtred,tam_up);
 
