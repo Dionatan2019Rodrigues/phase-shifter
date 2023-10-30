@@ -476,6 +476,29 @@ void contencao(float *i, float *q, int tam){
     }
 }
 
+void plota_constelacao(float *i, float *q, int length){
+    FILE *gnuplotPipe = popen("gnuplot -persistent", "w");
+
+    if (gnuplotPipe == NULL)
+        printf("Erro ao iniciar o GNUplot.\n");
+
+    // Configurar o gráfico
+    fprintf(gnuplotPipe, "set title 'Constelação 16-QAM (I vs. Q)'\n");
+    fprintf(gnuplotPipe, "set xlabel 'I'\n");
+    fprintf(gnuplotPipe, "set ylabel 'Q'\n");
+
+    // Plotar os símbolos da constelação
+    fprintf(gnuplotPipe, "plot '-' using 1:2 title '16-QAM' with points pointtype 7\n");
+
+    for (int it=0;it<length;it++) {
+        fprintf(gnuplotPipe, "%lf %lf\n", i[it], q[it]);
+    }
+
+    fprintf(gnuplotPipe, "e\n");
+    fclose(gnuplotPipe);
+
+}
+
 int main() {
     //x é o vetor de 0 e 1 correspondete ao sinal que será modulado
     int *x, tam;
@@ -552,6 +575,14 @@ int main() {
 
     demapper(x_dmp,i_down,q_down,tam);
     escreve_vetor_to_CSV("database/demapper.csv",x_dmp,tam);
+
+    //mapper_reserva(x_dmp,i,q,tam);
+
+    //imprime_vetor(i,tam_iq);
+    printf("\n\n");
+    //imprime_vetor(q,tam_iq);
+
+    plota_constelacao(i,q,tam_iq);
 
     return 0;
 }

@@ -1,41 +1,35 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <gnuplot_i.h>
 
 int main() {
-    // Tamanho da constelação
-    int tamanho_constelacao = 64;
+    // Valores I e Q da constelação 16-QAM
+    double I[] = {1.0, -1.0, 3.0, -3.0, 1.0, -1.0, 3.0, -3.0, 1.0, -1.0, 3.0, -3.0, 1.0, -1.0, 3.0, -3.0};
+    double Q[] = {1.0, 1.0, 1.0, 1.0, 3.0, 3.0, 3.0, 3.0, -1.0, -1.0, -1.0, -1.0, -3.0, -3.0, -3.0, -3.0};
 
-    // Vetor de pontos IQ (exemplo)
-    double pontos_I[tamanho_constelacao];
-    double pontos_Q[tamanho_constelacao];
+    // Número de símbolos na constelação 16-QAM
+    int numSimbolos = sizeof(I) / sizeof(I[0]);
 
-    // Preencha os vetores de pontos IQ com seus valores reais
-    // Neste exemplo, você pode gerar pontos aleatórios para fins de ilustração
-    for (int i = 0; i < tamanho_constelacao; i++) {
-        pontos_I[i] = rand() / (double)RAND_MAX;  // Valores I aleatórios entre 0 e 1
-        pontos_Q[i] = rand() / (double)RAND_MAX;  // Valores Q aleatórios entre 0 e 1
+    // Inicialize o arquivo de saída para o GNUplot
+    FILE *gnuplotPipe = popen("gnuplot -persistent", "w");
+
+    if (gnuplotPipe == NULL) {
+        printf("Erro ao iniciar o GNUplot.\n");
+        return 1;
     }
 
-    // Inicialize o gnuplot
-    gnuplot_ctrl *h;
-    h = gnuplot_init();
+    // Configurar o gráfico
+    fprintf(gnuplotPipe, "set title 'Constelação 16-QAM (I vs. Q)'\n");
+    fprintf(gnuplotPipe, "set xlabel 'I'\n");
+    fprintf(gnuplotPipe, "set ylabel 'Q'\n");
 
-    // Configurar opções de plotagem
-    gnuplot_setstyle(h, "points");
-    gnuplot_cmd(h, "set title 'Constelação IQ'");
-    gnuplot_cmd(h, "set xlabel 'I'");
-    gnuplot_cmd(h, "set ylabel 'Q'");
+    // Plotar os símbolos da constelação
+    fprintf(gnuplotPipe, "plot '-' using 1:2 title '16-QAM' with points pointtype 7\n");
 
-    // Plotar a constelação IQ
-    gnuplot_plot_xy(h, pontos_I, pontos_Q, tamanho_constelacao, "Constelação");
+    for (int i = 0; i < numSimbolos; i++) {
+        fprintf(gnuplotPipe, "%lf %lf\n", I[i], Q[i]);
+    }
 
-    // Aguardar entrada do usuário antes de fechar o gráfico
-    printf("Pressione Enter para fechar o gráfico...\n");
-    getchar();
-
-    // Fechar o gnuplot
-    gnuplot_close(h);
+    fprintf(gnuplotPipe, "e\n");
+    fclose(gnuplotPipe);
 
     return 0;
 }
