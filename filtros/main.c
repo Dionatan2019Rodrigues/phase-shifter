@@ -370,7 +370,6 @@ void costas_loop(float *i, float *q, int length){
         q[it] = q[it]*sin(2*pi*it+th[it]);
     }
 
-
 }
 
 void rx_heterodinacao(float *u, float *i, float *q, int length, float fc, float fs, int k){
