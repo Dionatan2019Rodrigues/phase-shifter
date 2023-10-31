@@ -292,7 +292,9 @@ float *rrc(float *vet, int k, int tam_vet){
     int N=6;
     float *h = aloca_memoria_float(N), alpha = 0.5, *buffer = zera_buffer(N);
     gera_h_rrc(h,N,k,alpha);
-    //imprime_vetor(h,N);
+
+    printf("gera h rrc \n\n");
+    imprime_vetor(h,N);printf("\n\n");
     int tam_conv = tam_vet + 2*N -1;
     float *result = aloca_memoria_float(tam_conv);
 
@@ -310,6 +312,7 @@ float *tx_heterodinacao(float *u, float *i, float *q, int length, float fc, floa
         uq[it] = q[it] *sin(2*pi*fc*it/fs);
         u[it] = ui[it] - uq[it];
     }
+    //plota_constelacao(i,q,length);
     return u;
 }
 
@@ -400,20 +403,16 @@ void rx_heterodinacao(float *u, float *i, float *q, int length, float fc, float 
     float ui[length], uq[length];
     float delta_f = 0;
 
-    plota_constelacao(i,q,length);
-
     for(int it=0;it<length;it++){
         i[it] = u[it] *cos(2*pi*(fc+delta_f)*it/fs);
         q[it] = u[it] *(-sin(2*pi*(fc+delta_f)*it/fs));
     }
 
-    plota_constelacao(i,q,length);
-
     //passagem pelo filtro
     i = rrc(i,k,length);
     q = rrc(q,k,length);
 
-    plota_constelacao(i,q,length);
+    //plota_constelacao(i,q,length);
 
     //costas loop   
     //costas_loop(i,q,length);
@@ -508,19 +507,15 @@ void contencao(float *i, float *q, int tam){
 
 int main() {
     //x é o vetor de 0 e 1 correspondete ao sinal que será modulado
-    int tam = 10000;
-    int x[tam];
+    int *x, tam;
     FILE *arq;
 
     //abre o arquivo contendo o sinal a ser modularizado
-    //arq = open_file_sinal("database/sinal-renan.csv");
-    //tam = conta_elemento(arq); // conta a quantidadede elementos 
-    //x = aloca_memoria(x,tam); 
-    //atribui_vetor(arq,x,tam); // atribui os elementos ao vetor x
-    //fclose(arq); //fecha o arquivo que não será mais utilizado
- 
-    for(int it=0;it<tam;it++)
-        x[it] = rand() %2;
+    arq = open_file_sinal("database/sinal-renan.csv");
+    tam = conta_elemento(arq); // conta a quantidadede elementos 
+    x = aloca_memoria(x,tam); 
+    atribui_vetor(arq,x,tam); // atribui os elementos ao vetor x
+    fclose(arq); //fecha o arquivo que não será mais utilizado
 
     int tam_iq = tam/4;
     float *i = aloca_memoria_float(tam_iq);
@@ -540,8 +535,6 @@ int main() {
     upsampler(i,i_up,k,tam_iq);
     upsampler(q,q_up,k,tam_iq);
 
-    //plota_constelacao(i_up,q_up,tam_up);
-
     // Filter modulação -------------------------------------------------------
     float *i_filtred, *q_filtred;
 
@@ -549,9 +542,12 @@ int main() {
     //q_filtred = filtro_passa_baixa(q_up,tam_up);
     //i_filtred = gaussiano(i_up,tam_up);
     //q_filtred = gaussiano(q_up,tam_up);
+    imprime_vetor(i_up,tam_up);
+    printf("\n\n");
     i_filtred = rrc(i_up,k,tam_up);
     q_filtred = rrc(q_up,k,tam_up);
 
+    imprime_vetor(i_filtred,tam_up);
     //plota_constelacao(i_filtred,q_filtred,tam_up);
     
     //imprime_vetor(i_filtred,tam_up);
@@ -559,14 +555,11 @@ int main() {
     // Tx ----------------------------------------------------------------------
     float *u,fc = 320000,fss =2560000;
 
-    u = tx_heterodinacao(u,i_filtred,q_filtred,tam_up,fc,fss);
-
-    //plota_constelacao(i,q,tam_iq);
-    //plota_constelacao(i_up,q_up,tam_up);
+    //u = tx_heterodinacao(u,i_filtred,q_filtred,tam_up,fc,fss);
 
     // Rx ----------------------------------------------------------------------  
 
-    rx_heterodinacao(u,i_filtred,q_filtred,tam_up,fc,fss,k);
+    //rx_heterodinacao(u,i_filtred,q_filtred,tam_up,fc,fss,k);
 
     //imprime_vetor(i_filtred,tam_up);
 
@@ -586,21 +579,30 @@ int main() {
     i_down = downsampler(i_down,&i_demo[k/2],k,tam_iq);   
     q_down = downsampler(q_down,&q_demo[k/2],k,tam_iq);
 
+    printf("saida dow\n\n");
+    imprime_vetor(i_down,tam_iq);
+    imprime_vetor(q_down,tam_iq);
+
+    //plota_constelacao(i_down,q_down,tam_iq);
+
     contencao(i_down,q_down,tam_iq);
 
     // Demapper ---------------------------------------------------------------
     int *x_dmp = aloca_memoria(x_dmp,tam);
 
+    //plota_constelacao(i_down,q_down,tam_iq);
+
     demapper(x_dmp,i_down,q_down,tam);
     escreve_vetor_to_CSV("database/demapper.csv",x_dmp,tam);
 
-    //mapper_reserva(x_dmp,i,q,tam);
+    mapper_reserva(x_dmp,i,q,tam);
+    printf("\nsaida final");
+    imprime_vetor(i,tam_iq);
+    printf("\n\n");
+    imprime_vetor(q,tam_iq);
+    plota_constelacao(i,q,tam_iq);
 
-    //imprime_vetor(i,tam_iq);
-    //printf("\n\n");
-    //imprime_vetor(q,tam_iq);
-
-    //plota_constelacao(i,q,tam);
+    
 
     return 0;
 }
