@@ -73,7 +73,7 @@ int conta_elemento(FILE *arq){
 
 void imprime_vetor(float *vet, int tam){
     for(int it=0;it<tam;it++){
-        printf("%.2f\t",vet[it]);
+        printf("%.4f\t",vet[it]);
     }
     printf("\n");
 }
@@ -267,8 +267,29 @@ float *gaussiano(float *vet, int tam_vet){
     
 }
 
-void gera_h_rrc(float *h, int N, int k, float alpha){
+float *gera_h_rrc(float *h, int N, int k, float alpha){
     
+    float result[97] = {
+          0.0008,	-0.0006,	-0.0019,	-0.0031,	-0.0041,	-0.0047,   -0.0049,   -0.0046,
+         -0.0038,   -0.0024,	-0.0006,     0.0016,     0.0039,     0.0061,    0.0082,    0.0097,
+          0.0106,	 0.0106,	 0.0095,	 0.0073,	 0.0039,	-0.0006,   -0.0061,	  -0.0122,
+         -0.0188,	-0.0252,	-0.0311,    -0.0360,	-0.0392,	-0.0403,   -0.0388,   -0.0343,
+         -0.0265,   -0.0152,	-0.0004,     0.0179,     0.0392,     0.0632,    0.0893,    0.1167,
+          0.1447,    0.1723,     0.1985,     0.2226,     0.2437,     0.2609,    0.2737,    0.2816,
+          0.2842,	 0.2816,     0.2737,     0.2609,     0.2437,     0.2226,    0.1985,	   0.1723,
+          0.1447,	 0.1167,     0.0893,     0.0632,     0.0392,     0.0179,   -0.0004,   -0.0152,
+         -0.0265,   -0.0343,    -0.0388,    -0.0403,    -0.0392,    -0.0360,   -0.0311,   -0.0252,
+         -0.0188,   -0.0122,    -0.0061,    -0.0006,     0.0039,     0.0073,    0.0095,    0.0106,
+          0.0106,    0.0097,     0.0082,     0.0061,     0.0039,     0.0016,   -0.0006,	  -0.0024,
+         -0.0038,   -0.0046,    -0.0049,    -0.0047,    -0.0041,    -0.0031,   -0.0019,   -0.0006,
+         0.0008
+    };
+    for(int i=0;i<N;i++){
+        h[i] = result[i];
+    }
+
+    return h;
+    /*
     for(int i=0;i<N;i++){
         h[i] = (4*alpha)/(pi*k) *  
 
@@ -278,6 +299,8 @@ void gera_h_rrc(float *h, int N, int k, float alpha){
               / 1-(((i-((N-1)/2))/k)*4*alpha)
             );
     }
+    */
+
 }
 
 float *zera_buffer(int tam){
@@ -288,14 +311,11 @@ float *zera_buffer(int tam){
     return ptr;
 }
 
-float *rrc(float *vet, int k, int tam_vet){
-    int N=6;
+float *rrc(float *vet, int k, int tam_vet, int N){
     float *h = aloca_memoria_float(N), alpha = 0.5, *buffer = zera_buffer(N);
-    gera_h_rrc(h,N,k,alpha);
+    h = gera_h_rrc(h,N,k,alpha);
 
-    printf("gera h rrc \n\n");
-    imprime_vetor(h,N);printf("\n\n");
-    int tam_conv = tam_vet + 2*N -1;
+    int tam_conv = tam_vet + N -1;
     float *result = aloca_memoria_float(tam_conv);
 
     //convolução
@@ -409,8 +429,8 @@ void rx_heterodinacao(float *u, float *i, float *q, int length, float fc, float 
     }
 
     //passagem pelo filtro
-    i = rrc(i,k,length);
-    q = rrc(q,k,length);
+    i = rrc(i,k,length,97);
+    q = rrc(q,k,length,97);
 
     //plota_constelacao(i,q,length);
 
@@ -537,22 +557,15 @@ int main() {
 
     // Filter modulação -------------------------------------------------------
     float *i_filtred, *q_filtred;
+    int N = 97;
 
-    //i_filtred = filtro_passa_baixa(i_up,tam_up);
-    //q_filtred = filtro_passa_baixa(q_up,tam_up);
-    //i_filtred = gaussiano(i_up,tam_up);
-    //q_filtred = gaussiano(q_up,tam_up);
-    imprime_vetor(i_up,tam_up);
-    printf("\n\n");
-    i_filtred = rrc(i_up,k,tam_up);
-    q_filtred = rrc(q_up,k,tam_up);
+    i_filtred = rrc(i_up,k,tam_up,N);
+    q_filtred = rrc(q_up,k,tam_up,N);
 
-    imprime_vetor(i_filtred,tam_up);
-    //plota_constelacao(i_filtred,q_filtred,tam_up);
-    
-    //imprime_vetor(i_filtred,tam_up);
-    //printf("saida: \n");
+    //plota_constelacao(i_filtred,q_filtred,tam_up+N-1);
+
     // Tx ----------------------------------------------------------------------
+
     float *u,fc = 320000,fss =2560000;
 
     //u = tx_heterodinacao(u,i_filtred,q_filtred,tam_up,fc,fss);
@@ -566,43 +579,39 @@ int main() {
     // Filter demodulação ------------------------------------------------------  
     float *i_demo, *q_demo;
     
-    //i_demo = filtro_passa_baixa(i_filtred,tam_up);
-    //q_demo = filtro_passa_baixa(q_filtred,tam_up);
-    //i_demo = gaussiano(i_filtred,tam_up);
-    //q_demo = gaussiano(q_filtred,tam_up);
-    i_demo = rrc(i_filtred,k,tam_up);
-    q_demo = rrc(q_filtred,k,tam_up);   
+    i_demo = rrc(i_filtred,k,tam_up+N-1,N);
+    q_demo = rrc(q_filtred,k,tam_up+N-1,N);
+
+    //plota_constelacao(i_demo,q_demo,tam_up+N-1); 
      
     // Downsampler -------------------------------------------------------------
     float *i_down, *q_down;
 
-    i_down = downsampler(i_down,&i_demo[k/2],k,tam_iq);   
+    imprime_vetor(i_demo,tam_up+N-1);printf("\ndepois down\n\n");
+
+    i_down = downsampler(i_down,&i_demo[tam_up+N-1],k,tam_iq);   
     q_down = downsampler(q_down,&q_demo[k/2],k,tam_iq);
 
-    printf("saida dow\n\n");
-    imprime_vetor(i_down,tam_iq);
-    imprime_vetor(q_down,tam_iq);
-
-    //plota_constelacao(i_down,q_down,tam_iq);
-
+    imprime_vetor(i_down,tam_iq);printf("\n\n");
     contencao(i_down,q_down,tam_iq);
+    imprime_vetor(i_down,tam_iq);printf("\n\n");
+
+    plota_constelacao(i_down,q_down,tam_iq);
 
     // Demapper ---------------------------------------------------------------
     int *x_dmp = aloca_memoria(x_dmp,tam);
 
-    //plota_constelacao(i_down,q_down,tam_iq);
-
     demapper(x_dmp,i_down,q_down,tam);
     escreve_vetor_to_CSV("database/demapper.csv",x_dmp,tam);
 
+/* 
     mapper_reserva(x_dmp,i,q,tam);
-    printf("\nsaida final");
+    printf("\nsaida final\n");
     imprime_vetor(i,tam_iq);
     printf("\n\n");
     imprime_vetor(q,tam_iq);
     plota_constelacao(i,q,tam_iq);
-
+ */
     
-
     return 0;
 }
