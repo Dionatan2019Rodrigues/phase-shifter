@@ -111,7 +111,6 @@ void atribui_vetor(FILE *arq, int *vet, int tam){
 }
 
 // funções de modulação  ---------------------------------------------
-
 void mapper_reserva(int *sequencia, float *I, float *Q, int tam) {
     int j = 0, sequencia_dec[tam/4];
     for (int i = 0; i < tam / 4; i++) {
@@ -333,6 +332,7 @@ float *tx_heterodinacao(float *u, float *i, float *q, int length, float fc, floa
         u[it] = ui[it] - uq[it];
     }
     //plota_constelacao(i,q,length);
+    //imprime_vetor(u,length);
     return u;
 }
 
@@ -419,7 +419,7 @@ void costas_loop(float *i, float *q, int length){
 
 }
 
-void rx_heterodinacao(float *u, float *i, float *q, int length, float fc, float fs, int k){
+void rx_heterodinacao(float *u, float *i, float *q, int length, float fc, float fs, int k, int N){
     float ui[length], uq[length];
     float delta_f = 0;
 
@@ -429,12 +429,13 @@ void rx_heterodinacao(float *u, float *i, float *q, int length, float fc, float 
     }
 
     //passagem pelo filtro
-    i = rrc(i,k,length,97);
-    q = rrc(q,k,length,97);
+    i = rrc(i,k,length+N-1,N);
+    q = rrc(q,k,length+N-1,N);
 
-    //plota_constelacao(i,q,length);
-
-    //costas loop   
+    printf("\n\nnumber tam: %d\n\n",length+N-1+N-1);
+    imprime_vetor(i,length+N-1+N-1);
+    //plota_constelacao(i,q,length+N-1);
+  
     //costas_loop(i,q,length);
 
 }
@@ -568,32 +569,23 @@ int main() {
 
     float *u,fc = 320000,fss =2560000;
 
-    //u = tx_heterodinacao(u,i_filtred,q_filtred,tam_up,fc,fss);
+    u = tx_heterodinacao(u,i_filtred,q_filtred,tam_up,fc,fss);
 
     // Rx ----------------------------------------------------------------------  
 
-    //rx_heterodinacao(u,i_filtred,q_filtred,tam_up,fc,fss,k);
+    rx_heterodinacao(u,i_filtred,q_filtred,tam_up,fc,fss,k,N);
     //imprime_vetor(i_filtred,tam_up);
 
-    // Filter demodulação ------------------------------------------------------  
-    float *i_demo, *q_demo;
-    
-    i_demo = rrc(i_filtred,k,tam_up+N-1,N);
-    q_demo = rrc(q_filtred,k,tam_up+N-1,N);
 
-    //plota_constelacao(i_demo,q_demo,tam_up+N-1); 
-     
     // Downsampler -------------------------------------------------------------
     float *i_down, *q_down;
 
     //imprime_vetor(i_demo,tam_up+N-1);
 
-    i_down = downsampler(i_down,&i_demo[N],k,tam_iq);   
-    q_down = downsampler(q_down,&q_demo[N],k,tam_iq);
-
+    i_down = downsampler(i_down,&i_filtred[N],k,tam_iq);   
+    q_down = downsampler(q_down,&q_filtred[N],k,tam_iq);
 
     //plota_constelacao(i_down,q_down,tam_iq);
-
     contencao(i_down,q_down,tam_iq);
     //Dúvida para que serve a contenção ? 
     plota_constelacao(i_down,q_down,tam_iq);
