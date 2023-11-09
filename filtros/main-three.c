@@ -4,6 +4,7 @@
 #include <string.h> // necessário para usar função strtok()
 #include <math.h>   // necessário para função gera_h_rrc()
 #include <stdbool.h> // necessário para parâmetro same da função convolucao()
+#include <complex.h> // necessário para transformada de fourier
 
 #define pi 3.14159265358979323846
 
@@ -111,7 +112,7 @@ void atribui_vetor(FILE *arq, int *vet, int tam){
 }
 
 // funções de modulação  ---------------------------------------------
-void mapper_reserva(int *sequencia, float *I, float *Q, int tam) {
+void mapper_reserva(int *sequencia, float *Ii, float *Q, int tam) {
     int j = 0, sequencia_dec[tam/4];
     for (int i = 0; i < tam / 4; i++) {
         sequencia_dec[i] = sequencia[j] * 8 + sequencia[j + 1] * 4 + sequencia[j + 2] * 2 + sequencia[j + 3];
@@ -121,67 +122,67 @@ void mapper_reserva(int *sequencia, float *I, float *Q, int tam) {
     for (int i = 0; i < tam / 4; i++) {
         switch (sequencia_dec[i]) {
             case 0:
-                I[i] = -3;
+                Ii[i] = -3;
                 Q[i] = 3;
                 break;
             case 1:
-                I[i] = -3;
+                Ii[i] = -3;
                 Q[i] = 1;
                 break;
             case 2:
-                I[i] = -3;
+                Ii[i] = -3;
                 Q[i] = -3;
                 break;
             case 3:
-                I[i] = -3;
+                Ii[i] = -3;
                 Q[i] = -1;
                 break;
             case 4:
-                I[i] = -1;
+                Ii[i] = -1;
                 Q[i] = 3;
                 break;
             case 5:
-                I[i] = -1;
+                Ii[i] = -1;
                 Q[i] = 1;
                 break;
             case 6:
-                I[i] = -1;
+                Ii[i] = -1;
                 Q[i] = -3;
                 break;
             case 7:
-                I[i] = -1;
+                Ii[i] = -1;
                 Q[i] = -1;
                 break;
             case 8:
-                I[i] = 3;
+                Ii[i] = 3;
                 Q[i] = 3;
                 break;
             case 9:
-                I[i] = 3;
+                Ii[i] = 3;
                 Q[i] = 1;
                 break;
             case 10:
-                I[i] = 3;
+                Ii[i] = 3;
                 Q[i] = -3;
                 break;
             case 11:
-                I[i] = 3;
+                Ii[i] = 3;
                 Q[i] = -1;
                 break;
             case 12:
-                I[i] = 1;
+                Ii[i] = 1;
                 Q[i] = 3;
                 break;
             case 13:
-                I[i] = 1;
+                Ii[i] = 1;
                 Q[i] = 1;
                 break;
             case 14:
-                I[i] = 1;
+                Ii[i] = 1;
                 Q[i] = -3;
                 break;
             case 15:
-                I[i] = 1;
+                Ii[i] = 1;
                 Q[i] = -1;
                 break;
             default:
@@ -315,13 +316,24 @@ float *rrc(float *vet, int k, int tam_vet, int N){
     h = gera_h_rrc(h,N,k,alpha);
 
     int tam_conv = tam_vet + N -1;
-    float *result = aloca_memoria_float(tam_conv);
+    float *result = aloca_memoria_float(tam_conv);  
 
     //convolução
     result = convolucao(vet,h,N,buffer,result,tam_conv,false);
 
     return result;
 }
+
+/*
+void abs_fftshift_fft_u(float *u, int length){
+    complex double *aux = u;
+    float *temp = fft(aux,temp,length);
+
+    fftshift(temp);
+    for(int i=0;i<length;i++){
+        u[i] = abs(temp[i]);
+    }
+}*/
 
 float *tx_heterodinacao(float *u, float *i, float *q, int length, float fc, float fs){
     float ui[length], uq[length];
@@ -331,8 +343,6 @@ float *tx_heterodinacao(float *u, float *i, float *q, int length, float fc, floa
         uq[it] = q[it] *sin(2*pi*fc*it/fs);
         u[it] = ui[it] - uq[it];
     }
-    //plota_constelacao(i,q,length);
-    //imprime_vetor(u,length);
     return u;
 }
 
@@ -428,12 +438,18 @@ void rx_heterodinacao(float *u, float *i, float *q, int length, float fc, float 
         q[it] = u[it] *(-sin(2*pi*(fc+delta_f)*it/fs));
     }
 
-    //passagem pelo filtro
-    i = rrc(i,k,length+N-1,N);
-    q = rrc(q,k,length+N-1,N);
+    printf("tam: %d\n",length);
+    
 
-    printf("\n\nnumber tam: %d\n\n",length+N-1+N-1);
-    imprime_vetor(i,length+N-1+N-1);
+    //passagem pelo filtro
+    i = rrc(i,k,length,N);
+    q = rrc(q,k,length,N);
+
+    imprime_vetor(q,length+N-1);
+    
+
+    //printf("\n\nnumber tam: %d\n\n",length+N-1+N-1);
+    //imprime_vetor(i,length+N-1+N-1);
     //plota_constelacao(i,q,length+N-1);
   
     //costas_loop(i,q,length);
@@ -487,7 +503,7 @@ void demapper(int *x_dmp, float *i, float *q, int tam){
     }
 }
 
-void plot_constelacao(float *I, float *Q, int tam){
+void plot_constelacao(float *Ii, float *Q, int tam){
     FILE *file = fopen("database/constelacao.csv", "w");
     
     if (file == NULL)
@@ -495,7 +511,7 @@ void plot_constelacao(float *I, float *Q, int tam){
 
     fprintf(file, "I,Q\n");
     for (int i = 0; i < tam; i++) 
-        fprintf(file, "%.2f,%.2f\n", I[i], Q[i]);
+        fprintf(file, "%.2f,%.2f\n", Ii[i], Q[i]);
     
 
     fclose(file);
@@ -563,24 +579,18 @@ int main() {
     i_filtred = rrc(i_up,k,tam_up,N);
     q_filtred = rrc(q_up,k,tam_up,N);
 
-    //plota_constelacao(i_filtred,q_filtred,tam_up+N-1);
-
     // Tx ----------------------------------------------------------------------
 
     float *u,fc = 320000,fss =2560000;
 
-    u = tx_heterodinacao(u,i_filtred,q_filtred,tam_up,fc,fss);
+    u = tx_heterodinacao(u,i_filtred,q_filtred,tam_up+N-1,fc,fss);
 
     // Rx ----------------------------------------------------------------------  
 
-    rx_heterodinacao(u,i_filtred,q_filtred,tam_up,fc,fss,k,N);
-    //imprime_vetor(i_filtred,tam_up);
-
+    rx_heterodinacao(u,i_filtred,q_filtred,tam_up+N-1,fc,fss,k,N);
 
     // Downsampler -------------------------------------------------------------
     float *i_down, *q_down;
-
-    //imprime_vetor(i_demo,tam_up+N-1);
 
     i_down = downsampler(i_down,&i_filtred[N],k,tam_iq);   
     q_down = downsampler(q_down,&q_filtred[N],k,tam_iq);
@@ -588,7 +598,7 @@ int main() {
     //plota_constelacao(i_down,q_down,tam_iq);
     contencao(i_down,q_down,tam_iq);
     //Dúvida para que serve a contenção ? 
-    plota_constelacao(i_down,q_down,tam_iq);
+    //plota_constelacao(i_down,q_down,tam_iq);
 
     // Demapper ---------------------------------------------------------------
     int *x_dmp = aloca_memoria(x_dmp,tam);
