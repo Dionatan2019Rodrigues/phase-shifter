@@ -531,7 +531,7 @@ int main() {
     FILE *arq;
 
     //abre o arquivo contendo o sinal a ser modularizado
-    arq = open_file_sinal("database/sinal-renan.csv");
+    arq = open_file_sinal("database/sinal-10k.csv");
     tam = conta_elemento(arq); // conta a quantidadede elementos 
     x = aloca_memoria(x,tam); 
     atribui_vetor(arq,x,tam); // atribui os elementos ao vetor x
@@ -592,7 +592,7 @@ int main() {
     q_down = downsampler(q_down,&q_demo[N],k,tam_iq);
 
 
-    //plota_constelacao(i_down,q_down,tam_iq);
+    plota_constelacao(i_down,q_down,tam_iq);
 
     contencao(i_down,q_down,tam_iq);
     //Dúvida para que serve a contenção ? 

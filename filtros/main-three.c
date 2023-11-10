@@ -438,14 +438,14 @@ void rx_heterodinacao(float *u, float *i, float *q, int length, float fc, float 
         q[it] = u[it] *(-sin(2*pi*(fc+delta_f)*it/fs));
     }
 
-    printf("tam: %d\n",length);
+    //printf("tam: %d\n",length);
     
 
     //passagem pelo filtro
     i = rrc(i,k,length,N);
     q = rrc(q,k,length,N);
 
-    imprime_vetor(q,length+N-1);
+    //imprime_vetor(q,length+N-1);
     
 
     //printf("\n\nnumber tam: %d\n\n",length+N-1+N-1);
@@ -595,10 +595,10 @@ int main() {
     i_down = downsampler(i_down,&i_filtred[N],k,tam_iq);   
     q_down = downsampler(q_down,&q_filtred[N],k,tam_iq);
 
-    //plota_constelacao(i_down,q_down,tam_iq);
+    plota_constelacao(i_down,q_down,tam_iq);
     contencao(i_down,q_down,tam_iq);
     //Dúvida para que serve a contenção ? 
-    //plota_constelacao(i_down,q_down,tam_iq);
+    plota_constelacao(i_down,q_down,tam_iq);
 
     // Demapper ---------------------------------------------------------------
     int *x_dmp = aloca_memoria(x_dmp,tam);
