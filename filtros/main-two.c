@@ -12,26 +12,27 @@
 // e assim separado corretamente apenas pelo delimitador ','
 
 //funções auxiliares -------------------------------------------------
-int *aloca_memoria(int *ptr , int tam){
+
+int *aloca_memoria_int(int *ptr , int tam){
     ptr = (int *) malloc(tam*sizeof(int));
     if(ptr == NULL)
         printf("Erro de alocação:\n");
     return ptr;
 }
 
-void plota_constelacao(float *i, float *q, int length){
+void plota_constelacao(float *i, float *q, int length, char *palavra){
     FILE *gnuplotPipe = popen("gnuplot -persistent", "w");
 
     if (gnuplotPipe == NULL)
         printf("Erro ao iniciar o GNUplot.\n");
 
     // Configurar o gráfico
-    fprintf(gnuplotPipe, "set title 'Constelação 16-QAM (I vs. Q)'\n");
+    fprintf(gnuplotPipe, "set title 'Constelação QPSK (I vs. Q)'\n");
     fprintf(gnuplotPipe, "set xlabel 'I'\n");
     fprintf(gnuplotPipe, "set ylabel 'Q'\n");
 
     // Plotar os símbolos da constelação
-    fprintf(gnuplotPipe, "plot '-' using 1:2 title '16-QAM' with points pointtype 7\n");
+    fprintf(gnuplotPipe, "plot '-' using 1:2 title '%s' with points pointtype 7\n",palavra);
 
     for (int it=0;it<length;it++) {
         fprintf(gnuplotPipe, "%lf %lf\n", i[it], q[it]);
@@ -71,14 +72,14 @@ int conta_elemento(FILE *arq){
     return numElementos;
 }
 
-void imprime_vetor(float *vet, int tam){
+void imprime_vetor_to_float(float *vet, int tam){
     for(int it=0;it<tam;it++){
         printf("%.4f\t",vet[it]);
     }
     printf("\n");
 }
 
-void imprime_vetor_toint(int *vet, int tam){
+void imprime_vetor_to_int(int *vet, int tam){
     for(int it=0;it<tam;it++){
         printf("%d ",vet[it]);
     }
@@ -91,7 +92,38 @@ void double_to_int(double *input, int *output, int length) {
     }
 }
 
-// atribui sinal recebido a um vetor ---------------------------------
+void show_constelacao_csv(float *I, float *Q, int tam){
+    FILE *file = fopen("database/constelacao.csv", "w");
+    
+    if (file == NULL)
+        printf("Erro ao abrir o arquivo.\n");
+
+    fprintf(file, "I,Q\n");
+    for (int i = 0; i < tam; i++) 
+        fprintf(file, "%.2f,%.2f\n", I[i], Q[i]);
+    
+
+    fclose(file);
+}
+
+void escreve_vetor_to_CSV(const char *nomeArquivo, int * vetor, int tamanho){
+    FILE *arquivo = fopen(nomeArquivo,"w");
+
+    if (arquivo == NULL) 
+        printf("Erro ao abrir o arquivo.\n");
+
+    for (int i = 0; i < tamanho; i++) {
+        fprintf(arquivo, "%d", vetor[i]);
+
+        // Adiciona uma vírgula após todos os elementos, exceto o último
+        if (i < tamanho - 1) 
+            fprintf(arquivo, ",");
+        
+    }
+    fclose(arquivo);
+
+}
+
 void atribui_vetor(FILE *arq, int *vet, int tam){
     int it = 0;
     char linha[tam]; 
@@ -112,7 +144,7 @@ void atribui_vetor(FILE *arq, int *vet, int tam){
 
 // funções de modulação  ---------------------------------------------
 
-void mapper_reserva(int *sequencia, float *I, float *Q, int tam) {
+void mapper_16_qam(int *sequencia, float *I, float *Q, int tam) {
     int j = 0, sequencia_dec[tam/4];
     for (int i = 0; i < tam / 4; i++) {
         sequencia_dec[i] = sequencia[j] * 8 + sequencia[j + 1] * 4 + sequencia[j + 2] * 2 + sequencia[j + 3];
@@ -185,10 +217,40 @@ void mapper_reserva(int *sequencia, float *I, float *Q, int tam) {
                 I[i] = 1;
                 Q[i] = -1;
                 break;
-            default:
-                break;
+            default: break;
         }
     }
+}
+
+void mapper_qpsk(int *sequencia, float *I, float *Q, int tam){
+    int j= 0, sequencia_dec[tam/2];
+    for(int it=0;it<tam/2;it++){
+        sequencia_dec[it] = sequencia[j]*2 + sequencia[j+1];
+        j += 2;
+    }
+
+    for(int it=0;it<tam/2;it++){
+        switch(sequencia_dec[it]){
+            case 0:
+                I[it] = 1;
+                Q[it] = 1;
+                break;
+            case 1:
+                I[it] = -1;
+                Q[it] = 1;
+                break;
+            case 2:
+                I[it] = 1;
+                Q[it] = -1;
+                break;
+            case 3:
+                I[it] = -1;
+                Q[it] = -1;
+                break; 
+            default: break;   
+        }
+    }
+    
 }
 
 void upsampler(float*vet, float *vet_up, int k, int tam_iq){
@@ -324,6 +386,8 @@ float *rrc(float *vet, int k, int tam_vet, int N){
     return result;
 }
 
+// heterodinação TX ----------------------------------------------------
+
 float *tx_heterodinacao(float *u, float *i, float *q, int length, float fc, float fs){
     float ui[length], uq[length];
     u = aloca_memoria_float(length);
@@ -335,6 +399,8 @@ float *tx_heterodinacao(float *u, float *i, float *q, int length, float fc, floa
     //plota_constelacao(i,q,length);
     return u;
 }
+
+// funções do costas loop ----------------------------------------------
 
 void firpm(float *h, int filterLength, float *f, float *a) {
     //float sum;
@@ -419,6 +485,8 @@ void costas_loop(float *i, float *q, int length){
 
 }
 
+// heterodinação RX -----------------------------------------------------
+
 void rx_heterodinacao(float *u, float *i, float *q, int length, float fc, float fs, int k){
     float ui[length], uq[length];
     float delta_f = 0;
@@ -439,7 +507,7 @@ void rx_heterodinacao(float *u, float *i, float *q, int length, float fc, float 
 
 }
 
-// funções de demodulação --------------------------------------------
+// funções de demodulação -----------------------------------------------
 float *downsampler(float *vet_down, float *vet_up, int k , int tam_iq){ 
     vet_down = aloca_memoria_float(tam_iq);
 
@@ -449,7 +517,14 @@ float *downsampler(float *vet_down, float *vet_up, int k , int tam_iq){
     return vet_down;
 }
 
-void demapper(int *x_dmp, float *i, float *q, int tam){
+void contencao(float *i, float *q, int tam){
+    for(int it=0;it<tam;it++){
+        i[it] /= 5.8962;
+        q[it] /= 5.8962; 
+    }
+}
+
+void demapper_16_qam(int *x_dmp, float *i, float *q, int tam){
     int j=0;
     for(int it=0;it<tam;it+=4){
         // valores correspondentes a i
@@ -486,42 +561,22 @@ void demapper(int *x_dmp, float *i, float *q, int tam){
     }
 }
 
-void plot_constelacao(float *I, float *Q, int tam){
-    FILE *file = fopen("database/constelacao.csv", "w");
-    
-    if (file == NULL)
-        printf("Erro ao abrir o arquivo.\n");
-
-    fprintf(file, "I,Q\n");
-    for (int i = 0; i < tam; i++) 
-        fprintf(file, "%.2f,%.2f\n", I[i], Q[i]);
-    
-
-    fclose(file);
-}
-
-void escreve_vetor_to_CSV(const char *nomeArquivo, int * vetor, int tamanho){
-    FILE *arquivo = fopen(nomeArquivo,"w");
-
-    if (arquivo == NULL) 
-        printf("Erro ao abrir o arquivo.\n");
-
-    for (int i = 0; i < tamanho; i++) {
-        fprintf(arquivo, "%d", vetor[i]);
-
-        // Adiciona uma vírgula após todos os elementos, exceto o último
-        if (i < tamanho - 1) 
-            fprintf(arquivo, ",");
+void demapper_qpsk(int *x_dmp, float *i, float *q, int tam){
+    int j = 0;
+    for(int it=0;it<tam;it+=2){
+        // valores correspondentes a q
+        if(q[j]>0.0)
+            x_dmp[it] = 0;
+        else
+            x_dmp[it] = 1;
         
-    }
-    fclose(arquivo);
-
-}
-
-void contencao(float *i, float *q, int tam){
-    for(int it=0;it<tam;it++){
-        i[it] /= 5.8962;
-        q[it] /= 5.8962; 
+        // valores correspondentes a i
+        if(i[j]>0.0)
+            x_dmp[it+1] = 0;
+        else
+            x_dmp[it+1] = 1;
+        
+        j++;  
     }
 }
 
@@ -533,17 +588,17 @@ int main() {
     //abre o arquivo contendo o sinal a ser modularizado
     arq = open_file_sinal("database/sinal-10k.csv");
     tam = conta_elemento(arq); // conta a quantidadede elementos 
-    x = aloca_memoria(x,tam); 
+    x = aloca_memoria_int(x,tam); 
     atribui_vetor(arq,x,tam); // atribui os elementos ao vetor x
     fclose(arq); //fecha o arquivo que não será mais utilizado
 
-    int tam_iq = tam/4;
+    int tam_iq = tam/2; // [tam/4 == 16 QAM]  [tam/2 == QPSK]
     float *i = aloca_memoria_float(tam_iq);
     float *q = aloca_memoria_float(tam_iq);
 
     //-------------------------------------------------------------------------
-    mapper_reserva(x,i,q,tam);
-    plot_constelacao(i,q,tam_iq); 
+    mapper_qpsk(x,i,q,tam); // escolha seu mapper (QAM || QPSK)
+    show_constelacao_csv(i,q,tam_iq); // printa a constelação em (database/constelacao.csv)
 
     // Upsampler --------------------------------------------------------------
     int fs = 2560000; int symbolRate = 160000;
@@ -556,13 +611,14 @@ int main() {
     upsampler(q,q_up,k,tam_iq);
 
     // Filter modulação -------------------------------------------------------
+    // Escolha seu filtro (Passa baixa || Gaussiano || rrc)
     float *i_filtred, *q_filtred;
     int N = 97;
 
-    i_filtred = rrc(i_up,k,tam_up,N);
+    i_filtred = rrc(i_up,k,tam_up,N); 
     q_filtred = rrc(q_up,k,tam_up,N);
 
-    //plota_constelacao(i_filtred,q_filtred,tam_up+N-1);
+    //plota_constelacao(i_filtred,q_filtred,tam_up+N-1,"QPSK");
 
     // Tx ----------------------------------------------------------------------
 
@@ -573,7 +629,6 @@ int main() {
     // Rx ----------------------------------------------------------------------  
 
     //rx_heterodinacao(u,i_filtred,q_filtred,tam_up,fc,fss,k);
-    //imprime_vetor(i_filtred,tam_up);
 
     // Filter demodulação ------------------------------------------------------  
     float *i_demo, *q_demo;
@@ -581,27 +636,22 @@ int main() {
     i_demo = rrc(i_filtred,k,tam_up+N-1,N);
     q_demo = rrc(q_filtred,k,tam_up+N-1,N);
 
-    //plota_constelacao(i_demo,q_demo,tam_up+N-1); 
+    //plota_constelacao(i_demo,q_demo,tam_up+N-1,"QPSK"); 
      
     // Downsampler -------------------------------------------------------------
     float *i_down, *q_down;
 
-    //imprime_vetor(i_demo,tam_up+N-1);
+    i_down = downsampler(i_down,&i_demo[N-1],k,tam_iq);   
+    q_down = downsampler(q_down,&q_demo[N-1],k,tam_iq);
 
-    i_down = downsampler(i_down,&i_demo[N],k,tam_iq);   
-    q_down = downsampler(q_down,&q_demo[N],k,tam_iq);
-
-
-    plota_constelacao(i_down,q_down,tam_iq);
-
+    //plota_constelacao(i_down,q_down,tam_iq,"QPSK");
     contencao(i_down,q_down,tam_iq);
-    //Dúvida para que serve a contenção ? 
-    plota_constelacao(i_down,q_down,tam_iq);
+    plota_constelacao(i_down,q_down,tam_iq,"QPSK");
 
     // Demapper ---------------------------------------------------------------
-    int *x_dmp = aloca_memoria(x_dmp,tam);
+    int *x_dmp = aloca_memoria_int(x_dmp,tam);
 
-    demapper(x_dmp,i_down,q_down,tam);
+    demapper_qpsk(x_dmp,i_down,q_down,tam);
     escreve_vetor_to_CSV("database/demapper.csv",x_dmp,tam);
     
     return 0;
