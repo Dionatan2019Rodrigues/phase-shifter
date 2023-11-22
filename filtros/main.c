@@ -19,7 +19,7 @@ int *aloca_memoria(int *ptr , int tam){
     return ptr;
 }
 
-void plota_constelacao(float *i, float *q, int length){
+void plota_constelacao(double *i, double *q, int length){
     FILE *gnuplotPipe = popen("gnuplot -persistent", "w");
 
     if (gnuplotPipe == NULL)
@@ -42,8 +42,8 @@ void plota_constelacao(float *i, float *q, int length){
 
 }
 
-float *aloca_memoria_float(int tam){
-    float *ptr = (float *) malloc(tam*sizeof(float));
+double *aloca_memoria_double(int tam){
+    double *ptr = (double *) malloc(tam*sizeof(double));
     if(ptr == NULL)
         printf("Erro de alocação:\n");
     return ptr;
@@ -71,7 +71,7 @@ int conta_elemento(FILE *arq){
     return numElementos;
 }
 
-void imprime_vetor(float *vet, int tam){
+void imprime_vetor(double *vet, int tam){
     for(int it=0;it<tam;it++){
         printf("%.2f\t",vet[it]);
     }
@@ -112,7 +112,7 @@ void atribui_vetor(FILE *arq, int *vet, int tam){
 
 // funções de modulação  ---------------------------------------------
 
-void mapper_reserva(int *sequencia, float *I, float *Q, int tam) {
+void mapper_reserva(int *sequencia, double *I, double *Q, int tam) {
     int j = 0, sequencia_dec[tam/4];
     for (int i = 0; i < tam / 4; i++) {
         sequencia_dec[i] = sequencia[j] * 8 + sequencia[j + 1] * 4 + sequencia[j + 2] * 2 + sequencia[j + 3];
@@ -191,7 +191,7 @@ void mapper_reserva(int *sequencia, float *I, float *Q, int tam) {
     }
 }
 
-void upsampler(float*vet, float *vet_up, int k, int tam_iq){
+void upsampler(double*vet, double *vet_up, int k, int tam_iq){
     
     for(int it=0;it<tam_iq;it++){
         vet_up[it * k] = vet[it];
@@ -204,19 +204,19 @@ void upsampler(float*vet, float *vet_up, int k, int tam_iq){
 }
 
 // funções de filtragem 
-void fifo(float n, float *buffer, int tam){
+void fifo(double n, double *buffer, int tam){
     for(int i=tam-1;i>0;i--){
         buffer[i] = buffer[i-1]; 
     }
     buffer[0] = n;
 }
 
-float *convolucao(float *x, float *h, int h_len,
-                    float *buffer, float *result, int tam_conv, bool same) {
+double *convolucao(double *x, double *h, int h_len,
+                    double *buffer, double *result, int tam_conv, bool same) {
     
-    float *aux = aloca_memoria_float(tam_conv);   
+    double *aux = aloca_memoria_double(tam_conv);   
 
-    float soma;
+    double soma;
     for(int i=0;i<tam_conv;i++){
         soma = 0;
         fifo(i<tam_conv-h_len+1?x[i]:0.0,buffer,h_len);
@@ -227,14 +227,14 @@ float *convolucao(float *x, float *h, int h_len,
     }
   
     if(same){
-        result = aloca_memoria_float(tam_conv-h_len+1);
+        result = aloca_memoria_double(tam_conv-h_len+1);
         int it = h_len/2;
         for(int i=0;i<tam_conv-h_len-1;i++){
             result[i] = aux[it];
             it++;
         }
     }else{
-        result = aloca_memoria_float(tam_conv);
+        result = aloca_memoria_double(tam_conv);
         for(int i=0;i<tam_conv;i++){
             result[i] = aux[i];
         }
@@ -243,22 +243,22 @@ float *convolucao(float *x, float *h, int h_len,
     return result;
 }
 
-float *filtro_passa_baixa(float *vet, int tam_vet_up){
-    float h[] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
-    float buffer[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+double *filtro_passa_baixa(double *vet, int tam_vet_up){
+    double h[] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
+    double buffer[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     int tam_h = 16, tam_conv = tam_vet_up + tam_h -1;
-    float *result;
+    double *result;
     //convolução
     result = convolucao(vet,h,tam_h,buffer,result,tam_conv,true);
     return result;
 }
 
-float *gaussiano(float *vet, int tam_vet){
-    float h[] = {0.0030, 0.0118, 0.0390, 0.1051, 0.2367, 0.4445, 0.6972, 0.9138,
+double *gaussiano(double *vet, int tam_vet){
+    double h[] = {0.0030, 0.0118, 0.0390, 0.1051, 0.2367, 0.4445, 0.6972, 0.9138,
                    1.0000, 0.9138, 0.6972, 0.4445, 0.2367, 0.1051, 0.0390, 0.0118};
-    float buffer[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    double buffer[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     int tam_h = 16, tam_conv = tam_vet + 2*16 -1;
-    float *result = aloca_memoria_float(tam_conv);
+    double *result = aloca_memoria_double(tam_conv);
 
     //convolução 
     result = convolucao(vet,h,tam_h,buffer,result,tam_conv,false); 
@@ -267,7 +267,7 @@ float *gaussiano(float *vet, int tam_vet){
     
 }
 
-void gera_h_rrc(float *h, int N, int k, float alpha){
+void gera_h_rrc(double *h, int N, int k, double alpha){
     
     for(int i=0;i<N;i++){
         h[i] = (4*alpha)/(pi*k) *  
@@ -280,21 +280,21 @@ void gera_h_rrc(float *h, int N, int k, float alpha){
     }
 }
 
-float *zera_buffer(int tam){
-    float *ptr = aloca_memoria_float(tam);
+double *zera_buffer(int tam){
+    double *ptr = aloca_memoria_double(tam);
     for(int i=0;i<tam;i++){
         ptr[i] = 0.0;
     }
     return ptr;
 }
 
-float *rrc(float *vet, int k, int tam_vet){
+double *rrc(double *vet, int k, int tam_vet){
     int N=6;
-    float *h = aloca_memoria_float(N), alpha = 0.5, *buffer = zera_buffer(N);
+    double *h = aloca_memoria_double(N), alpha = 0.5, *buffer = zera_buffer(N);
     gera_h_rrc(h,N,k,alpha);
     //imprime_vetor(h,N);
     int tam_conv = tam_vet + 2*N -1;
-    float *result = aloca_memoria_float(tam_conv);
+    double *result = aloca_memoria_double(tam_conv);
 
     //convolução
     result = convolucao(vet,h,N,buffer,result,tam_conv,false);
@@ -302,9 +302,9 @@ float *rrc(float *vet, int k, int tam_vet){
     return result;
 }
 
-float *tx_heterodinacao(float *u, float *i, float *q, int length, float fc, float fs){
-    float ui[length], uq[length];
-    u = aloca_memoria_float(length);
+double *tx_heterodinacao(double *u, double *i, double *q, int length, double fc, double fs){
+    double ui[length], uq[length];
+    u = aloca_memoria_double(length);
     for(int it=0;it<length;it++){
         ui[it] = i[it] *cos(2*pi*fc*it/fs);
         uq[it] = q[it] *sin(2*pi*fc*it/fs);
@@ -313,8 +313,8 @@ float *tx_heterodinacao(float *u, float *i, float *q, int length, float fc, floa
     return u;
 }
 
-void firpm(float *h, int filterLength, float *f, float *a) {
-    //float sum;
+void firpm(double *h, int filterLength, double *f, double *a) {
+    //double sum;
 
     for(int i=0;i<filterLength;i++){
         h[i] = 0;
@@ -332,7 +332,7 @@ void firpm(float *h, int filterLength, float *f, float *a) {
     }
 }
 
-float *att_z(float *z, int length, float value){
+double *att_z(double *z, int length, double value){
     for(int i=0;i<length-1;i++){
         z[i] = z[i+1];
     }
@@ -341,13 +341,13 @@ float *att_z(float *z, int length, float value){
     return z;
 }
 
-void fliplr(float *vet, int length){
+void fliplr(double *vet, int length){
     int inicio = 0;
     int fim = length - 1;
     
     while(inicio < fim){
         // Troque os elementos nas posições inicio e fim
-        float aux = vet[inicio];
+        double aux = vet[inicio];
         vet[inicio] = vet[fim];
         vet[fim] = aux;
         
@@ -356,35 +356,35 @@ void fliplr(float *vet, int length){
     }
 }
 
-float matrix_multiplica(float *v, float *vet, int length){
-    float result = 0;
+double matrix_multiplica(double *v, double *vet, int length){
+    double result = 0;
     for (int i=0;i<length;i++){
         result += v[i] * vet[i];
     }
     return result;
 }
 
-void costas_loop(float *i, float *q, int length){
-    float *r = i, f[]={0, 0.2, 0.3, 1}, a[]={1, 1, 0, 0};
-    float h[length]; firpm(h,length,f,a); 
+void costas_loop(double *i, double *q, int length){
+    double *r = i, f[]={0, 0.2, 0.3, 1}, a[]={1, 1, 0, 0};
+    double h[length]; firpm(h,length,f,a); 
     int fl = 100, que = fl+1;
-    float mu = 0.00001, f0 = 320000;
+    double mu = 0.00001, f0 = 320000;
 
-    float *th = zera_buffer(length);    th[0] = rand();
-    float *z1 = zera_buffer(que);   float *z2 = zera_buffer(que);
-    float *z3 = zera_buffer(que);   float *z4 = zera_buffer(que);
+    double *th = zera_buffer(length);    th[0] = rand();
+    double *z1 = zera_buffer(que);   double *z2 = zera_buffer(que);
+    double *z3 = zera_buffer(que);   double *z4 = zera_buffer(que);
 
     for(int it=0;it<length;it++){
-        float s = 2*r[it];
+        double s = 2*r[it];
         z1 = att_z(z1,que,s*cos(2*pi*f0*it+th[it]));
         z2 = att_z(z2,que,s*cos(2*pi*f0*it+pi/4+th[it]));
         z3 = att_z(z3,que,s*cos(2*pi*f0*it+pi/2+th[it]));
         z4 = att_z(z4,que,s*cos(2*pi*f0*it+(3*pi/4)+th[it]));
         fliplr(h,length);
-        float lpf1 = matrix_multiplica(h,z1,length);
-        float lpf2 = matrix_multiplica(h,z2,length);
-        float lpf3 = matrix_multiplica(h,z3,length);
-        float lpf4 = matrix_multiplica(h,z4,length);
+        double lpf1 = matrix_multiplica(h,z1,length);
+        double lpf2 = matrix_multiplica(h,z2,length);
+        double lpf3 = matrix_multiplica(h,z3,length);
+        double lpf4 = matrix_multiplica(h,z4,length);
 
         th[it+1] = th[it]+mu*lpf1*lpf2*lpf3*lpf4;
     }
@@ -396,9 +396,9 @@ void costas_loop(float *i, float *q, int length){
 
 }
 
-void rx_heterodinacao(float *u, float *i, float *q, int length, float fc, float fs, int k){
-    float ui[length], uq[length];
-    float delta_f = 0;
+void rx_heterodinacao(double *u, double *i, double *q, int length, double fc, double fs, int k){
+    double ui[length], uq[length];
+    double delta_f = 0;
 
     plota_constelacao(i,q,length);
 
@@ -421,8 +421,8 @@ void rx_heterodinacao(float *u, float *i, float *q, int length, float fc, float 
 }
 
 // funções de demodulação --------------------------------------------
-float *downsampler(float *vet_down, float *vet_up, int k , int tam_iq){ 
-    vet_down = aloca_memoria_float(tam_iq);
+double *downsampler(double *vet_down, double *vet_up, int k , int tam_iq){ 
+    vet_down = aloca_memoria_double(tam_iq);
 
     for(int it=0;it<tam_iq;it++){
         vet_down[it] = vet_up[it*k];
@@ -430,7 +430,7 @@ float *downsampler(float *vet_down, float *vet_up, int k , int tam_iq){
     return vet_down;
 }
 
-void demapper(int *x_dmp, float *i, float *q, int tam){
+void demapper(int *x_dmp, double *i, double *q, int tam){
     int j=0;
     for(int it=0;it<tam;it+=4){
         // valores correspondentes a i
@@ -467,7 +467,7 @@ void demapper(int *x_dmp, float *i, float *q, int tam){
     }
 }
 
-void plot_constelacao(float *I, float *Q, int tam){
+void plot_constelacao(double *I, double *Q, int tam){
     FILE *file = fopen("database/constelacao.csv", "w");
     
     if (file == NULL)
@@ -499,7 +499,7 @@ void escreve_vetor_to_CSV(const char *nomeArquivo, int * vetor, int tamanho){
 
 }
 
-void contencao(float *i, float *q, int tam){
+void contencao(double *i, double *q, int tam){
     for(int it=0;it<tam;it++){
         i[it] /= 5.8962;
         q[it] /= 5.8962; 
@@ -523,8 +523,8 @@ int main() {
         x[it] = rand() %2;
 
     int tam_iq = tam/4;
-    float *i = aloca_memoria_float(tam_iq);
-    float *q = aloca_memoria_float(tam_iq);
+    double *i = aloca_memoria_double(tam_iq);
+    double *q = aloca_memoria_double(tam_iq);
 
     //-------------------------------------------------------------------------
     mapper_reserva(x,i,q,tam);
@@ -534,8 +534,8 @@ int main() {
     int fs = 2560000; int symbolRate = 160000;
     int k = fs/symbolRate, tam_up = (k*tam_iq);
 
-    float *i_up = aloca_memoria_float(tam_up);
-    float *q_up = aloca_memoria_float(tam_up);
+    double *i_up = aloca_memoria_double(tam_up);
+    double *q_up = aloca_memoria_double(tam_up);
 
     upsampler(i,i_up,k,tam_iq);
     upsampler(q,q_up,k,tam_iq);
@@ -543,7 +543,7 @@ int main() {
     //plota_constelacao(i_up,q_up,tam_up);
 
     // Filter modulação -------------------------------------------------------
-    float *i_filtred, *q_filtred;
+    double *i_filtred, *q_filtred;
 
     //i_filtred = filtro_passa_baixa(i_up,tam_up);
     //q_filtred = filtro_passa_baixa(q_up,tam_up);
@@ -557,7 +557,7 @@ int main() {
     //imprime_vetor(i_filtred,tam_up);
     //printf("saida: \n");
     // Tx ----------------------------------------------------------------------
-    float *u,fc = 320000,fss =2560000;
+    double *u,fc = 320000,fss =2560000;
 
     u = tx_heterodinacao(u,i_filtred,q_filtred,tam_up,fc,fss);
 
@@ -571,7 +571,7 @@ int main() {
     //imprime_vetor(i_filtred,tam_up);
 
     // Filter demodulação ------------------------------------------------------  
-    float *i_demo, *q_demo;
+    double *i_demo, *q_demo;
     
     //i_demo = filtro_passa_baixa(i_filtred,tam_up);
     //q_demo = filtro_passa_baixa(q_filtred,tam_up);
@@ -581,7 +581,7 @@ int main() {
     q_demo = rrc(q_filtred,k,tam_up);   
      
     // Downsampler -------------------------------------------------------------
-    float *i_down, *q_down;
+    double *i_down, *q_down;
 
     i_down = downsampler(i_down,&i_demo[k/2],k,tam_iq);   
     q_down = downsampler(q_down,&q_demo[k/2],k,tam_iq);
