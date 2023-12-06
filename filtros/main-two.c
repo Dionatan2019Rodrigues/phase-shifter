@@ -11,10 +11,31 @@
 // escolhido para que todo o arquivo seja considerado na mesma linha 
 // e assim separado corretamente apenas pelo delimitador ','
 
+// Struct utilizada apenas para retorno de dois vetores na função 
+// de heterodinação do RX 
+typedef struct I_and_Q{
+    double *i;
+    double *q;
+} I_and_Q;
+
 //funções auxiliares -------------------------------------------------
 
 int *aloca_memoria_int(int *ptr , int tam){
     ptr = (int *) malloc(tam*sizeof(int));
+    if(ptr == NULL)
+        printf("Erro de alocação:\n");
+    return ptr;
+}
+
+I_and_Q *aloca_memoria_IandQ(I_and_Q *ptr , int tam){
+    ptr = (I_and_Q *) malloc(tam*sizeof(I_and_Q));
+    if(ptr == NULL)
+        printf("Erro de alocação:\n");
+    return ptr;
+}
+
+double *aloca_memoria_double(int tam){
+    double *ptr = (double *) malloc(tam*sizeof(double));
     if(ptr == NULL)
         printf("Erro de alocação:\n");
     return ptr;
@@ -27,7 +48,7 @@ void plota_constelacao(double *i, double *q, int length, char *palavra){
         printf("Erro ao iniciar o GNUplot.\n");
 
     // Configurar o gráfico
-    fprintf(gnuplotPipe, "set title 'Constelação QPSK (I vs. Q)'\n");
+    fprintf(gnuplotPipe, "set title 'Constelação (I vs. Q)'\n");
     fprintf(gnuplotPipe, "set xlabel 'I'\n");
     fprintf(gnuplotPipe, "set ylabel 'Q'\n");
 
@@ -41,13 +62,6 @@ void plota_constelacao(double *i, double *q, int length, char *palavra){
     fprintf(gnuplotPipe, "e\n");
     fclose(gnuplotPipe);
 
-}
-
-double *aloca_memoria_double(int tam){
-    double *ptr = (double *) malloc(tam*sizeof(double));
-    if(ptr == NULL)
-        printf("Erro de alocação:\n");
-    return ptr;
 }
 
 FILE * open_file_sinal(const char *nomeArquivo){
@@ -74,7 +88,7 @@ int conta_elemento(FILE *arq){
 
 void imprime_vetor_to_double(double *vet, int tam){
     for(int it=0;it<tam;it++){
-        printf("%.4f\t",vet[it]);
+        printf("%.15lf,\t",vet[it]);
     }
     printf("\n");
 }
@@ -284,8 +298,10 @@ double *convolucao(double *x, double *h, int h_len,
         fifo(i<tam_conv-h_len+1?x[i]:0.0,buffer,h_len);
         for(int j=0;j<h_len;j++){
             soma += h[j]*buffer[j];
-        } 
-        aux[i] = soma; 
+            if(false)//i> -1)
+              printf("%.15lf\t%.15lf\t%.15lf\t %d \n",h[j]*buffer[j],h[j],buffer[j],i);
+        }
+        aux[i] = soma;  //printf("\n\nsoma : %.15f\n\n",soma);
     }
   
     if(same){
@@ -301,7 +317,7 @@ double *convolucao(double *x, double *h, int h_len,
             result[i] = aux[i];
         }
     }
-    //imprime_vetor(result,tam_conv-h_len+1);
+    
     return result;
 }
 
@@ -331,38 +347,62 @@ double *gaussiano(double *vet, int tam_vet){
 
 double *gera_h_rrc(double *h, int N, int k, double alpha){
     
-    double result[97] = {
-          0.0008,	-0.0006,	-0.0019,	-0.0031,	-0.0041,	-0.0047,   -0.0049,   -0.0046,
-         -0.0038,   -0.0024,	-0.0006,     0.0016,     0.0039,     0.0061,    0.0082,    0.0097,
-          0.0106,	 0.0106,	 0.0095,	 0.0073,	 0.0039,	-0.0006,   -0.0061,	  -0.0122,
-         -0.0188,	-0.0252,	-0.0311,    -0.0360,	-0.0392,	-0.0403,   -0.0388,   -0.0343,
-         -0.0265,   -0.0152,	-0.0004,     0.0179,     0.0392,     0.0632,    0.0893,    0.1167,
-          0.1447,    0.1723,     0.1985,     0.2226,     0.2437,     0.2609,    0.2737,    0.2816,
-          0.2842,	 0.2816,     0.2737,     0.2609,     0.2437,     0.2226,    0.1985,	   0.1723,
-          0.1447,	 0.1167,     0.0893,     0.0632,     0.0392,     0.0179,   -0.0004,   -0.0152,
-         -0.0265,   -0.0343,    -0.0388,    -0.0403,    -0.0392,    -0.0360,   -0.0311,   -0.0252,
-         -0.0188,   -0.0122,    -0.0061,    -0.0006,     0.0039,     0.0073,    0.0095,    0.0106,
-          0.0106,    0.0097,     0.0082,     0.0061,     0.0039,     0.0016,   -0.0006,	  -0.0024,
-         -0.0038,   -0.0046,    -0.0049,    -0.0047,    -0.0041,    -0.0031,   -0.0019,   -0.0006,
-         0.0008
+    double result[193] = {
+        -0.001464362909190, -0.001549948973214, -0.001523182924045, -0.001379644457772,
+        -0.001122992318093, -0.000765089003496, -0.000325560504993,  0.000169203468059,
+        0.000687564732007,   0.001194586078552,  0.001654300375967,  0.002032157821072,
+        0.002297491320544,   0.002425831490531,  0.002400905306081,  0.002216166313000,
+        0.001875729098751,   0.001394615226113,  0.000798260188090,  0.000121278668202,
+        -0.000594464452480, -0.001302380539853, -0.001954139055491, -0.002502924825123,
+        -0.002906762970181, -0.003131688456413, -0.003154536013046, -0.002965139823864,
+        -0.002567760714100, -0.001981600419200, -0.001240315856612, -0.000390508224605,
+        0.000510771372798,   0.001399390314348,  0.002208203093592,  0.002871589892473,
+        0.003330190078717,   0.003535526193061,  0.003454202559889,  0.003071370886305,
+        0.002393183635656,   0.001448003858844,  0.000286205575928, -0.001021521428146,
+        -0.002387358591033, -0.003710938463274, -0.004885123996039, -0.005802705388592,
+        -0.006363656361036, -0.006482532752170, -0.006095559215791, -0.005166937917401,
+        -0.003693928588924, -0.001710292627652,  0.000712235950497,  0.003464695681364,
+        0.006403987870593,   0.009358312488535,  0.012134814520585,  0.014529169571095,
+        0.016336709175666,   0.017364573245316,  0.017444286485940,  0.016444093683428,
+        0.014280360243406,   0.010927352475415,  0.006424758052054,  0.000882390041223,
+        -0.005518364986095, -0.012526647906263, -0.019827901222924, -0.027053257220647,
+        -0.033792292151858, -0.039608714382785, -0.044058384733034, -0.046708921435117,
+        -0.047160028678039, -0.045063613585971, -0.040142726846119, -0.032208379967995,
+        -0.021173357849681, -0.007062256973854,  0.009982867257178,  0.029701672486649,
+        0.051719734818859,   0.075557771470786,  0.100645629196443,  0.126340558535742,
+        0.151949083723797,   0.176751596907524,  0.200028662593807,  0.221087921611800,
+        0.239290438683964,   0.254075346796148,  0.264981705053947,  0.271666601987918,
+        0.273918698077496,   0.271666601987918,  0.264981705053947,  0.254075346796148,
+        0.239290438683964,   0.221087921611800,  0.200028662593807,  0.176751596907524,
+        0.151949083723797,   0.126340558535742,  0.100645629196443,  0.075557771470786,
+        0.051719734818859,   0.029701672486649,  0.009982867257178, -0.007062256973854,
+        -0.021173357849681, -0.032208379967995, -0.040142726846119, -0.045063613585971,
+        -0.047160028678039, -0.046708921435117, -0.044058384733034, -0.039608714382785,
+        -0.033792292151858, -0.027053257220647, -0.019827901222924, -0.012526647906263,
+        -0.005518364986095,  0.000882390041223,  0.006424758052054,  0.010927352475415,
+        0.014280360243406,   0.016444093683428,  0.017444286485940,  0.017364573245316,
+        0.016336709175666,   0.014529169571095,  0.012134814520585,  0.009358312488535,
+        0.006403987870593,   0.003464695681364,  0.000712235950497, -0.001710292627652,
+        -0.003693928588924, -0.005166937917401, -0.006095559215791, -0.006482532752170,
+        -0.006363656361036, -0.005802705388592, -0.004885123996039, -0.003710938463274,
+        -0.002387358591033, -0.001021521428146,  0.000286205575928,  0.001448003858844,
+        0.002393183635656,   0.003071370886305,  0.003454202559889,  0.003535526193061,
+        0.003330190078717,   0.002871589892473,  0.002208203093592,  0.001399390314348,
+        0.000510771372798,  -0.000390508224605, -0.001240315856612, -0.001981600419200,
+        -0.002567760714100, -0.002965139823864, -0.003154536013046, -0.003131688456413,
+        -0.002906762970181, -0.002502924825123, -0.001954139055491, -0.001302380539853,
+        -0.000594464452480,  0.000121278668202,  0.000798260188090,  0.001394615226113,
+        0.001875729098751,   0.002216166313000,  0.002400905306081,  0.002425831490531,
+        0.002297491320544,   0.002032157821072,  0.001654300375967,  0.001194586078552,
+        0.000687564732007,   0.000169203468059, -0.000325560504993, -0.000765089003496,
+        -0.001122992318093, -0.001379644457772, -0.001523182924045, -0.001549948973214,
+        -0.001464362909190
     };
     for(int i=0;i<N;i++){
         h[i] = result[i];
     }
 
     return h;
-    /*
-    for(int i=0;i<N;i++){
-        h[i] = (4*alpha)/(pi*k) *  
-
-            ( cos(((i-((N-1)/2))/k)*pi*(1+alpha)) 
-                + (pi*(1-alpha)/4*alpha) * sin(((i-((N-1)/2))/k)*pi*(1-alpha))
-            
-              / 1-(((i-((N-1)/2))/k)*4*alpha)
-            );
-    }
-    */
-
 }
 
 double *zera_buffer(int tam){
@@ -387,16 +427,15 @@ double *rrc(double *vet, int k, int tam_vet, int N){
 }
 
 // heterodinação TX ----------------------------------------------------
-
 double *tx_heterodinacao(double *u, double *i, double *q, int length, double fc, double fs){
     double ui[length], uq[length];
     u = aloca_memoria_double(length);
+
     for(int it=0;it<length;it++){
         ui[it] = i[it] *cos(2*pi*fc*it/fs);
         uq[it] = q[it] *sin(2*pi*fc*it/fs);
         u[it] = ui[it] - uq[it];
     }
-    //plota_constelacao(i,q,length);
     return u;
 }
 
@@ -487,9 +526,9 @@ void costas_loop(double *i, double *q, int length){
 
 // heterodinação RX -----------------------------------------------------
 
-void rx_heterodinacao(double *u, double *i, double *q, int length, double fc, double fs, int k){
-    double ui[length], uq[length];
-    double delta_f = 0;
+void rx_heterodinacao(double *u, double *i, double *q, int length,
+                        double fc, double fs, int k, int N, I_and_Q *ptr){
+    double delta_f = 00;
 
     for(int it=0;it<length;it++){
         i[it] = u[it] *cos(2*pi*(fc+delta_f)*it/fs);
@@ -497,12 +536,11 @@ void rx_heterodinacao(double *u, double *i, double *q, int length, double fc, do
     }
 
     //passagem pelo filtro
-    i = rrc(i,k,length,97);
-    q = rrc(q,k,length,97);
-
-    plota_constelacao(i,q,length,"16-QAM");
-
-    //costas loop   
+    i = rrc(i,k,length,N);
+    q = rrc(q,k,length,N);
+    ptr->i  = i;
+    ptr->q  = q;
+  
     //costas_loop(i,q,length);
 
 }
@@ -510,7 +548,7 @@ void rx_heterodinacao(double *u, double *i, double *q, int length, double fc, do
 // funções de demodulação -----------------------------------------------
 double *downsampler(double *vet_down, double *vet_up, int k , int tam_iq){ 
     vet_down = aloca_memoria_double(tam_iq);
-
+    
     for(int it=0;it<tam_iq;it++){
         vet_down[it] = vet_up[it*k];
     }
@@ -519,8 +557,8 @@ double *downsampler(double *vet_down, double *vet_up, int k , int tam_iq){
 
 void contencao(double *i, double *q, int tam){
     for(int it=0;it<tam;it++){
-        i[it] /= 5.8962;
-        q[it] /= 5.8962; 
+        i[it] *= 2;//5.8962*2;
+        q[it] *= 2;//5.8962*2; 
     }
 }
 
@@ -592,18 +630,18 @@ int main() {
     atribui_vetor(arq,x,tam); // atribui os elementos ao vetor x
     fclose(arq); //fecha o arquivo que não será mais utilizado
 
-    int tam_iq = tam/2; // [tam/4 == 16 QAM]  [tam/2 == QPSK]
+    int tam_iq = tam/4; // [tam/4 == 16 QAM]  [tam/2 == QPSK]
     double *i = aloca_memoria_double(tam_iq);
     double *q = aloca_memoria_double(tam_iq);
 
     //-------------------------------------------------------------------------
-    mapper_qpsk(x,i,q,tam); // escolha seu mapper (QAM || QPSK)
+    mapper_16_qam(x,i,q,tam); // escolha seu mapper (QAM || QPSK)
     show_constelacao_csv(i,q,tam_iq); // printa a constelação em (database/constelacao.csv)
 
     // Upsampler --------------------------------------------------------------
     int fs = 2560000; int symbolRate = 160000;
     int k = fs/symbolRate, tam_up = (k*tam_iq);
-
+    
     double *i_up = aloca_memoria_double(tam_up);
     double *q_up = aloca_memoria_double(tam_up);
 
@@ -611,48 +649,39 @@ int main() {
     upsampler(q,q_up,k,tam_iq);
 
     // Filter modulação -------------------------------------------------------
-    // Escolha seu filtro (Passa baixa || Gaussiano || rrc)
     double *i_filtred, *q_filtred;
-    int N = 97;
+    int N = 193;
 
-    i_filtred = rrc(i_up,k,tam_up,N); 
+    i_filtred = rrc(i_up,k,tam_up,N);
     q_filtred = rrc(q_up,k,tam_up,N);
-
-    //plota_constelacao(i_filtred,q_filtred,tam_up+N-1,"QPSK");
-
+    
     // Tx ----------------------------------------------------------------------
 
     double *u,fc = 320000,fss =2560000;
 
-    //u = tx_heterodinacao(u,i_filtred,q_filtred,tam_up,fc,fss);
+    u = tx_heterodinacao(u,i_filtred,q_filtred,tam_up+N-1,fc,fss);
 
     // Rx ----------------------------------------------------------------------  
+    I_and_Q *ptr = aloca_memoria_IandQ(ptr,1);
+    rx_heterodinacao(u,i_filtred,q_filtred,tam_up+N-1,fc,fss,k,N,ptr);
 
-    //rx_heterodinacao(u,i_filtred,q_filtred,tam_up,fc,fss,k);
+    i_filtred = ptr->i;
+    q_filtred = ptr->q;
 
-    // Filter demodulação ------------------------------------------------------  
-    double *i_demo, *q_demo;
-    
-    i_demo = rrc(i_filtred,k,tam_up+N-1,N);
-    q_demo = rrc(q_filtred,k,tam_up+N-1,N);
-
-    //plota_constelacao(i_demo,q_demo,tam_up+N-1,"QPSK"); 
-     
     // Downsampler -------------------------------------------------------------
-    double *i_down, *q_down;
+    double *i_down, *q_down;    
 
-    i_down = downsampler(i_down,&i_demo[N-1],k,tam_iq);   
-    q_down = downsampler(q_down,&q_demo[N-1],k,tam_iq);
+    i_down = downsampler(i_down,&i_filtred[N-1],k,tam_iq);   
+    q_down = downsampler(q_down,&q_filtred[N-1],k,tam_iq);
 
-    //plota_constelacao(i_down,q_down,tam_iq,"QPSK");
     contencao(i_down,q_down,tam_iq);
-    plota_constelacao(i_down,q_down,tam_iq,"QPSK");
+    plota_constelacao(i_down,q_down,tam_iq,"16-QAM");
 
     // Demapper ---------------------------------------------------------------
     int *x_dmp = aloca_memoria_int(x_dmp,tam);
 
-    demapper_qpsk(x_dmp,i_down,q_down,tam);
+    demapper_16_qam(x_dmp,i_down,q_down,tam);
     escreve_vetor_to_CSV("database/demapper.csv",x_dmp,tam);
-    
+
     return 0;
 }
